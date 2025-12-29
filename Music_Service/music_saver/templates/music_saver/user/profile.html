@@ -1,0 +1,270 @@
+{% extends 'music_saver/base.html' %}
+
+{% block title %}User Profile{% endblock title %}
+
+{% block content %}
+
+<div class="card shadow rounded-3 border-0 mb-4">
+    <div class="card-body">
+        <h4 class="border-bottom pb-2 mb-3 text-light">Edit your posted songs</h4>
+        <table class="table table-dark table-striped table-hover rounded small align-middle">
+            <thead class="bg-secondary text-white">
+                <tr>
+                    <th class="text-center">#</th>
+                    <th>Song</th>
+                    <th>Created at</th>
+                    <th class="text-center">Likes</th>
+                    <th class="text-center">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in songs %}
+                <tr>
+                    <td class="text-center">{{ s.id }}</td>
+                    <td>{{ s.title }}</td>
+                    <td>{{ s.created_at }}</td>
+                    <td class="text-center">{{ s.likes.count }}</td>
+                    <td class="text-center">
+                        <form method="post" action="{% url 'delete_song_table' s.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm delete-btn"
+                                    style="text-decoration: none; background-color: rgba(255,0,0,0.1); border-radius: 1rem;">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button class="btn btn-outline-secondary btn-sm toggle-table mt-2" data-visible="5" style="border-radius: 1rem;">
+            Show more
+        </button>
+    </div>
+</div>
+
+<div class="card shadow rounded-3 border-0 mb-4">
+    <div class="card-body">
+        <h4 class="border-bottom pb-2 mb-3 text-secondary">Edit your playlists</h4>
+        <table class="table table-dark table-striped table-hover rounded small align-middle">
+            <thead class="bg-secondary text-white">
+                <tr>
+                    <th class="text-center">#</th>
+                    <th>Playlist</th>
+                    <th>Created at</th>
+                    <th class="text-center">Songs</th>
+                    <th class="text-center">State</th>
+                    <th class="text-center">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in playlists %}
+                <tr>
+                    <td class="text-center">{{ p.id }}</td>
+                    <td>{{ p.title }}</td>
+                    <td>{{ p.created_at }}</td>
+                    <td class="text-center">{{ p.songs.count }}</td>
+                    <td class="text-center">{% if p.is_public %}Public{% else %}Private{% endif %}</td>
+                    <td class="text-center">
+                        <form method="post" action="{% url 'delete_playlist_table' p.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm delete-btn"
+                                    style="text-decoration: none; background-color: rgba(255,0,0,0.1); border-radius: 1rem;">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button class="btn btn-outline-secondary btn-sm toggle-table mt-2" data-visible="5" style="border-radius: 1rem;">
+            Show more
+        </button>
+    </div>
+</div>
+
+<div class="card shadow rounded-3 border-0 mb-4">
+    <div class="card-body">
+        <h4 class="border-bottom pb-2 mb-3 text-secondary">Edit your comments</h4>
+        <table class="table table-dark table-striped table-hover rounded small align-middle">
+            <thead class="bg-secondary text-white">
+                <tr>
+                    <th class="text-center">#</th>
+                    <th>Label</th>
+                    <th>Text</th>
+                    <th>Created at</th>
+                    <th class="text-center">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in comments %}
+                <tr>
+                    <td class="text-center">{{ c.id }}</td>
+                    <td>{{ c.label }}</td>
+                    <td>{{ c.text }}</td>
+                    <td>{{ c.created_at }}</td>
+                    <td class="text-center">
+                        <form method="post" action="{% url 'delete_comment_table' user.username c.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm delete-btn"
+                                    style="text-decoration: none; background-color: rgba(255,0,0,0.1); border-radius: 1rem;">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button class="btn btn-outline-secondary btn-sm toggle-table mt-2" data-visible="5" style="border-radius: 1rem;">
+            Show more
+        </button>
+    </div>
+</div>
+
+<div class="card shadow rounded-3 border-0 mb-4">
+    <div class="card-body">
+        <h4 class="border-bottom pb-2 mb-3 text-secondary">Liked Songs</h4>
+        <table class="table table-dark table-striped table-hover rounded small align-middle">
+            <thead class="bg-secondary text-white">
+                <tr>
+                    <th class="text-center">#</th>
+                    <th>Song</th>
+                    <th class="text-center">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in liked_songs %}
+                <tr>
+                    <td class="text-center">{{ s.id }}</td>
+                    <td>{{ s.title }}</td>
+                    <td class="text-center">
+                        <form method="post" action="{% url 'delete_liked_table' s.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm delete-btn"
+                                    style="text-decoration: none; background-color: rgba(255,0,0,0.1); border-radius: 1rem;">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button class="btn btn-outline-secondary btn-sm toggle-table mt-2" data-visible="5" style="border-radius: 1rem;">
+            Show more
+        </button>
+    </div>
+</div>
+
+<div class="card shadow rounded-3 border-0 mb-4">
+    <div class="card-body">
+        <h4 class="border-bottom pb-2 mb-3 text-secondary">Favorite Songs</h4>
+        <table class="table table-dark table-striped table-hover rounded small align-middle">
+            <thead class="bg-secondary text-white">
+                <tr>
+                    <th class="text-center">#</th>
+                    <th>Song</th>
+                    <th class="text-center">Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in fav_songs %}
+                <tr>
+                    <td class="text-center">{{ s.id }}</td>
+                    <td>{{ s.title }}</td>
+                    <td class="text-center">
+                        <form method="post" action="{% url 'delete_fav_table' s.id %}">
+                            {% csrf_token %}
+                            <button class="btn btn-outline-danger btn-sm delete-btn"
+                                    style="text-decoration: none; background-color: rgba(255,0,0,0.1); border-radius: 1rem;">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button class="btn btn-outline-secondary btn-sm toggle-table mt-2" data-visible="5" style="border-radius: 1rem;">
+            Show more
+        </button>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block script %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            document.cookie.split(';').forEach(cookie => {
+                cookie = cookie.trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                }
+            });
+        }
+        return cookieValue;
+    }
+
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (!confirm('Delete this item?')) return;
+
+            const form = btn.closest('form');
+            const url = form.getAttribute('action');
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', url);
+            xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+            xhr.onload = () => {
+                if (xhr.status === 200) {
+                    btn.closest('tr').remove();
+                } else {
+                    alert('Error deleting item');
+                }
+            };
+
+            xhr.send();
+        });
+    });
+
+    document.querySelectorAll('.toggle-table').forEach(btn => {
+		const table = btn.closest('.card-body').querySelector('table');
+		const rows = table.querySelectorAll('tbody tr');
+		const visibleCount = parseInt(btn.dataset.visible, 10);
+
+		if (rows.length > visibleCount) {
+			rows.forEach((row, index) => {
+				if (index >= visibleCount) row.style.display = 'none';
+			});
+			btn.textContent = 'Show more';
+		} else {
+			btn.style.display = 'none'; 
+		}
+
+		let expanded = false;
+		btn.addEventListener('click', () => {
+			expanded = !expanded;
+			if (expanded) {
+				rows.forEach(row => row.style.display = '');
+				btn.textContent = 'Show less';
+			} else {
+				rows.forEach((row, index) => {
+					row.style.display = (index < visibleCount) ? '' : 'none';
+				});
+				btn.textContent = 'Show more';
+			}
+		});
+	});
+});
+</script>
+{% endblock script %}

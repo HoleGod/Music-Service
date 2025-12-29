@@ -1,0 +1,130 @@
+{% extends 'music_saver/base.html' %}
+
+{% block title %}Search Result{% endblock title %}
+
+{% block content %}
+<h4 class="mb-4">Result for query "{{ q }}"</h4>
+
+{% if results %}
+	<ul class="list-group list-group-flush mt-3 shadow" style="width: 30%; border-radius: 0.5rem; overflow: hidden;">
+		{% for res in results %}
+			{% if res.type == "Song" %}
+				<li class="list-group-item bg-dark text-light" >
+					<i class="fas fa-music me-2"></i>
+					Song: 
+					<a href="{% url 'view_song' res.item.id %}" class="text-decoration-none text-light">
+						{{ res.item.title }}
+					</a>
+				</li>
+			{% elif res.type == "Playlist" %}
+				<li class="list-group-item bg-dark text-light">
+					<i class="fas fa-folder me-2"></i>
+					Playlist: 
+					<a href="{% url 'view_playlist' user.username res.item.id %}" class="text-decoration-none text-light">
+						{{ res.item.title }}
+					</a>
+				</li>
+			{% endif %}
+		{% endfor %}
+	</ul>
+{% else %}
+	<p class="text-white mt-3">No results found.</p>
+{% endif %}
+
+{% endblock content %}
+
+{% block script %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+	function getCookie(name) {
+		let cookieValue = null;
+		if (document.cookie && document.cookie !== '') {
+			const cookies = document.cookie.split(';');
+			for (let i = 0; i < cookies.length; i++) {
+				const cookie = cookies[i].trim();
+				if (cookie.substring(0, name.length + 1) === (name + '=')) {
+					cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+					break;
+				}
+			}
+		}
+		return cookieValue;
+	}
+
+	const serchInput = document.querySelector('input[name="q"]');
+	const resContainer = document.querySelector('.list-group');
+	const heading = document.querySelector('h4.mb-4');
+
+	if (!resContainer || !heading || !serchInput) {
+		return;
+	}
+
+	let DebounceTimeout;
+	serchInput.addEventListener('input', function() {
+		clearTimeout(DebounceTimeout);
+		DebounceTimeout = setTimeout(() => {
+			const query = this.value.trim();
+			if (query.length === 0) {
+				resContainer.innerHTML = '';
+				heading.textContent = 'Search Result';
+				return;
+			}
+
+			const xhr = new XMLHttpRequest();
+			xhr.open('GET', `/app/search-ajax/?q=${encodeURIComponent(query)}`, true);
+			xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+			xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+
+			xhr.onreadystatechange = function() {
+				if (xhr.readyState === 4) {
+					if (xhr.status === 200) {
+						try {
+							const data = JSON.parse(xhr.responseText);
+
+							resContainer.innerHTML = '';
+							if (data.results.length === 0) {
+								heading.textContent = `No results for "${query}"`;
+								return;
+							}
+
+							heading.textContent = `Results for "${query}"`;
+
+							data.results.forEach(res => {
+								const li = document.createElement('li');
+								li.className = 'list-group-item bg-dark text-light';
+
+								if (res.type === 'Song') {
+									li.innerHTML = `
+										<i class="fas fa-music me-2"></i>
+										Song: 
+										<a href="/app/song/${res.item.title}/" class="text-decoration-none text-light">
+											${res.item.title}
+										</a>
+									`;
+								} else if (res.type === 'Playlist') {
+									li.innerHTML = `
+										<i class="fas fa-folder me-2"></i>
+										Playlist: 
+										<a href="/app/user/${data.username}/playlist/${res.item.id}/" class="text-decoration-none text-light">
+											${res.item.title}
+										</a>
+									`;
+								}
+
+								resContainer.appendChild(li);
+							});
+						} catch (e) {
+							console.error('Error parsing JSON:', e);
+						}
+					} else {
+						console.error('Error fetching search results. Status:', xhr.status);
+					}
+				}
+			};
+
+			xhr.send();
+		}, 300);
+	});
+});
+</script>
+{% endblock script %}

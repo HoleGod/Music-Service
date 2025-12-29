@@ -1,0 +1,648 @@
+{% extends 'music_saver/base.html' %}
+
+{% block title %}Song page{% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block head %}
+<style>
+    input.bg-dark::placeholder,
+    textarea.bg-dark::placeholder {
+        color: #aaa;
+        opacity: 1;
+    }
+
+    btn-sm {
+        min-width: 60px;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        font-weight: 500;
+        transition: background-color 0.2s;
+        border: none;
+        border-radius: 0.5rem;
+    }
+
+    .btn-sm:hover {
+        background-color: rgba(255, 255, 255, 0.15);
+    }
+
+    #progressBar::-webkit-slider-thumb {
+        background: white;
+    }
+
+    .card {
+        border: none;
+        background-color: #212529;
+    }
+
+    .card-main {
+        background-color: #282828;
+        color: #fff;
+        border: none;
+    }
+
+    form[action*="like"] button:focus,
+    form[action*="like"] button:active,
+    form[action*="like"] button:focus-visible,
+    form[action*="dislike"] button:focus,
+    form[action*="dislike"] button:active,
+    form[action*="dislike"] button:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+</style>
+{% endblock head %}
+{% block content %}
+<div class="card shadow-lg p-3 mb-4 card-main">
+    <div class="row">
+        <div class="col-md-4 text-center mb-3">
+            <img src="{{ song.cover_image.url }}" class="card-img-top mx-auto mb-3" alt="Song"
+                style="max-width: 100%; height: auto; border-radius: 20px; object-fit: cover;">
+            <h5 class="card-title">{{ song.title }}</h5>
+            <p class="text-white-50"><b>{{ song.author }}</b> | <span id="songviews"><i
+                        class="fa-solid fa-eye"></i> {{ song.views }} views</span></p>
+
+            <hr>
+
+            <div class="d-flex justify-content-center gap-2 mb-3">
+                <div class="btn-group rounded-pill" style="background-color: rgba(255,255,255,0.05); overflow: hidden;">
+                    <button type="submit" class="btn btn-sm text-white bg-transparent rounded-0 border-none"
+                        data-song-id="{{ song.id }}" data-action="like">
+                        {% if has_like %}
+                            <i class="like-icon fa-solid fa-thumbs-up"></i>
+                        {% else %}
+                            <i class="like-icon fa-regular fa-thumbs-up"></i>
+                        {% endif %}
+                        <span class="like-count">{{ song.likes.count }}</span>
+                    </button>
+                    |
+                    <button type="submit" class="btn btn-sm text-white bg-transparent rounded-0 border-none"
+                        data-song-id="{{ song.id }}" data-action="dislike">
+                        {% if has_dislike %}
+                            <i class="dislike-icon fa-solid fa-thumbs-down"></i>
+                        {% else %}
+                            <i class="dislike-icon fa-regular fa-thumbs-down"></i>
+                        {% endif %}
+                    </button>
+                </div>
+
+                <button type="submit" class="btn btn-sm text-white"
+                    style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" data-song-id="{{ song.id }}"
+                    data-action="fav">
+                    {% if is_fav %}
+                        <i class="fav-icon fa-solid fa-heart"></i>
+                    {% else %}
+                        <i class="fav-icon fa-regular fa-heart"></i>
+                    {% endif %}
+                </button>
+
+                {% if request.user == song.user %}
+                <a href="{% url 'edit_song' song.id %}" class="btn btn-sm text-white"
+                    style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">Edit</a>
+                {% endif %}
+
+                {% if user.playlists.all %}
+                <button type="button" class="btn btn-sm text-white"
+                    style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" data-bs-toggle="modal"
+                    data-bs-target="#addToPlaylistModal-{{ song.id }}">
+                    Add to Playlist
+                </button>
+                {% else %}
+                <button type="button" class="btn btn-sm text-white"
+                    style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" data-bs-toggle="modal"
+                    data-bs-target="#add_playlist">
+                    Create playlist
+                </button>
+                {% endif %}
+            </div>
+
+            {% if song.audio %}
+            <audio id="myAudio" src="{{ song.audio.url }}" data-id="{{ song.id }}"></audio>
+
+            <div class="d-flex align-items-center justify-content-center gap-2 mb-3">
+                <span id="currentTime" class="text-white">0:00</span>
+                <input type="range" class="form-range flex-grow-1" id="progressBar" value="0" min="0" max="100"
+                    style="accent-color: #ffffff;">
+                <span id="durationTime" class="text-white">0:00</span>
+            </div>
+
+            <div class="mb-3 text-center">
+                <button id="playPauseBtn" class="btn btn-light btn-lg rounded-circle" style="border: none;">
+                    <i id="playIcon" class="fa-solid fa-play text-dark"></i>
+                </button>
+            </div>
+            {% endif %}
+
+
+        </div>
+
+        <div class="col-md-8">
+            <button class="btn btn-sm text-white mb-2"
+                style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" type="button"
+                data-bs-toggle="collapse" data-bs-target="#lyricsCollapse" aria-expanded="false">
+                <i class="fa-solid fa-file-lines"></i> Show lyrics
+            </button>
+            <div class="collapse" id="lyricsCollapse">
+                <pre class="text-white" style="white-space: pre-wrap; word-wrap: break-word;">{{ song.text }}</pre>
+            </div>
+        </div>
+
+        <div class="modal fade" id="addToPlaylistModal-{{ song.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content bg-dark text-white">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add "{{ song.title }}" to playlist</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="POST" action="{% url 'add_to_playlist' song.id %}" class="ajax-form">
+                            {% csrf_token %}
+                            <select name="playlist" class="form-select bg-dark text-white">
+                                {% for p in user.playlists.all %}
+                                <option value="{{ p.id }}">{{ p.title }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-success">Add</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="add_playlist" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content bg-dark text-white">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Create Playlist</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="POST" action="{% url 'add_playlist' song.id %}" class="ajax-form">
+                            {% csrf_token %}
+                            {{ add_playlist_form | crispy }}
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-success">Create</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<br>
+<div class="card m-1 p-1 text-light bg-dark">
+    <h2 class="card-title ms-3 mt-1">Comments</h2>
+    <hr>
+    <div class="m-2 p-2">
+        <form method="post" action="{% url 'add_comment' song.id %}" class="ajax-form mb-6" data-type="comments" data-rorc="c">
+            {% csrf_token %}
+            {{ comment_form|crispy }}
+            <div class="field">
+                <div class="control">
+                    <button class="btn btn-outline-light"
+                        style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">Save comment</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <hr>
+    {% for c in comments %}
+    <div class="card m-2 border-3 shadow" style="background-color: #1e2021;" id="comment-{{c.id}}">
+        <div class="card-header">@{{ c.user.username }}</div>
+        <div class="card-body">
+            <h5 class="card-title comment-title">{{ c.label }}</h5>
+            <p class="card-text comment-text">{{ c.text }}</p>
+            <small class="card-text text-white-50">{{ c.created_at }}</small>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <div class="d-flex gap-2">
+                {% if request.user == c.user %}
+                <button type="button" class="btn btn-sm btn-light text-white ajax-form-edit" data-bs-toggle="modal"
+                    data-bs-target="#editCommentModal" data-comment-id="{{ c.id }}" data-comment-text="{{ c.text }}" data-comment-label="{{ c.label }}"
+                    style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <form method="post" action="{% url 'delete_comment' c.id %}" class="ajax-form" data-del = "del">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-danger text-white"
+                        style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-light"
+                    style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" data-bs-toggle="modal"
+                    data-bs-target="#replyModal{{ c.id }}">
+                    Reply
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="replyModal{{ c.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <form method="post" action="{% url 'add_comment' song.id %}" class="ajax-form" data-type="comments" data-rorc="r">
+                    {% csrf_token %}
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">Reply to @{{ c.user.username }}</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ comment_form|crispy }}
+                        <input type="hidden" name="parent" value="{{ c.id }}">
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary" style="">Reply</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-transparent replies">
+        {% for r in c.replies.all %}
+        <div class="d-flex">
+            <div class="card m-2 border-3 shadow ms-auto" style="background-color: #1e2021; width: 90%;" id="comment-{{r.id}}">
+                <div class="card-header">@{{ r.user.username }}</div>
+                <div class="card-body">
+                    <h5 class="card-title comment-title">{{ r.label }}</h5>
+                    <p class="card-text comment-text">{{ r.text }}</p>
+                    <small class="card-text text-white-50">{{ r.created_at }}</small>
+                </div>
+                <div class="card-footer d-flex justify-content-start gap-2">
+                    {% if request.user == r.user %}
+                    <button type="button" class="btn btn-sm btn-light text-white ajax-form-edit"
+                        style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" data-bs-toggle="modal"
+                        data-comment-id="{{ r.id }}" data-comment-text="{{ r.text }}" data-comment-label="{{ r.label }}"
+                        data-bs-target="#editCommentModal">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <form method="post" action="{% url 'delete_comment' r.id %}" class="ajax-form" data-del = "del">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger text-white"
+                            style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div class="modal fade" id="editCommentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-light">
+                <form method="post" action="{% url 'edit_comment' c.id %}" id="editCommentForm">
+                    {% csrf_token %}
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">Edit comment</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="id">
+                        <div class="mb-2">
+                            <label>Label</label>
+                            <input type="text" name="label" class="form-control bg-dark text-light">
+                        </div>
+                        <div class="mb-2">
+                            <label>Text</label>
+                            <textarea name="text" class="form-control bg-dark text-light" rows="3"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal" style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">Close</button>
+                        <button type="submit" class="btn btn-outline-light" style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% endfor %}
+</div>
+
+{% endblock content %}
+
+{% block script %}
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const audio = document.getElementById('myAudio');
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        const playIcon = document.getElementById('playIcon');
+        const progressBar = document.getElementById('progressBar');
+        const currentTimeSpan = document.getElementById('currentTime');
+        const durationTimeSpan = document.getElementById('durationTime');
+
+        let listened30 = false;
+
+        playPauseBtn.addEventListener('click', () => {
+            if (audio.paused) {
+                audio.play();
+                playIcon.classList.replace('fa-play', 'fa-pause');
+            } else {
+                audio.pause();
+                playIcon.classList.replace('fa-pause', 'fa-play');
+            }
+        });
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let cookie of cookies) {
+                    cookie = cookie.trim();
+                    if (cookie.startsWith(name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        audio.addEventListener('timeupdate', () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.value = progress;
+            currentTimeSpan.textContent = formatTime(audio.currentTime);
+
+            if (!listened30 && audio.currentTime >= 30) {
+                listened30 = true;
+                const songId = audio.dataset.id;
+                url = `/app/song/${songId}/add_view/`;
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', url);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        console.log("Song has been listend for a 30 seconds");
+                        const data = JSON.parse(xhr.responseText);
+                        const songview = document.getElementById('songviews');
+                        if (songview && data.views !== undefined) {
+                            songview.textContent = data.views;
+                            console.log("Added view to the song")
+                        }
+                    }
+                }
+                xhr.send();
+            }
+        });
+
+        document.querySelectorAll('.ajax-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formdata = new FormData(form);
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', form.action, true);
+                xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+
+                const form_type = form.dataset.type || '';
+                const form_rorc = form.dataset.rorc || '';
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        console.log(`Send form for ${form.url}...`);
+                        const data = JSON.parse(xhr.responseText);
+
+                        if (form_type === 'comments' && data.success && form_rorc !== 'r') {
+                            const container = document.querySelector('.card.m-1.p-1.text-light.bg-dark');
+                            const tempDiv = document.createElement('div');
+                            tempDiv.classList.add('card', 'm-2', 'border-3', 'shadow');
+                            tempDiv.style.backgroundColor = '#1e2021';
+                            tempDiv.id = `comment-${data.id}`;
+
+                            tempDiv.innerHTML = `
+                                <div class="card-header">@${data.user}</div>
+                                <div class="card-body">
+                                    <h5 class="card-title comment-title">${data.label}</h5>
+                                    <p class="card-text comment-text">${data.text}</p>
+                                    <small class="card-text text-white-50">${data.created_at}</small>
+                                </div>
+                                <div class="card-footer d-flex justify-content-between">
+                                    <div class="d-flex gap-2">
+                                        ${data.is_author ? `
+                                        <button type="button" class="btn btn-sm btn-light text-white ajax-form-edit" 
+                                            data-bs-toggle="modal" data-bs-target="#editCommentModal" 
+                                            data-comment-id="${data.id}" data-comment-text="${data.text}" data-comment-label="${data.label}"
+                                            style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="post" action="/app/comment/${data.id}/delete/" class="ajax-form" data-del="del">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger text-white"
+                                                style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>` : ''}
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-light"
+                                            style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" 
+                                            data-bs-toggle="modal" data-bs-target="#replyModal${data.id}">
+                                            Reply
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+
+                            container.appendChild(tempDiv);
+
+                            form.reset();
+                        } else if (form_type === 'comments' && data.success && form_rorc === 'r') {
+                            const parentComment = form.closest('.card');
+                            const container = parentComment.querySelector('.bg-transparent.replies');
+                        
+                            const tempDiv = document.createElement('div');
+                            tempDiv.classList.add('d-flex');
+                            tempDiv.innerHTML = `
+                                <div class="card m-2 border-3 shadow ms-auto" style="background-color: #1e2021; width: 90%;" id="comment-${data.id}">
+                                    <div class="card-header">@${data.user}</div>
+                                    <div class="card-body">
+                                        <h5 class="card-title comment-title">${data.label}</h5>
+                                        <p class="card-text comment-text">${data.text}</p>
+                                        <small class="card-text text-white-50">${data.created_at}</small>
+                                    </div>
+                                    <div class="card-footer d-flex justify-content-start gap-2">
+                                        ${data.is_author ? `
+                                        <button type="button" class="btn btn-sm btn-light text-white ajax-form-edit" 
+                                            style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;" data-bs-toggle="modal"
+                                            data-comment-id="${data.id}" data-comment-text="${data.text}" data-comment-label="${data.label}"
+                                            data-bs-target="#editCommentModal">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <form method="post" action="/app/comment/${data.id}/delete/" class="ajax-form" data-del="del">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger text-white"
+                                                style="background-color: rgba(255,255,255,0.05); border-radius: 1rem;">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>` : ''}
+                                    </div>
+                                </div>
+                            `;
+                        
+                            if (container) container.appendChild(tempDiv);
+
+                            form.reset();
+                        }
+
+                        if (form.dataset.del === "del" && data.success) {
+                            const commentCard = document.getElementById(`comment-${data.id}`);
+                            if (commentCard) {
+                                commentCard?.remove();
+                                console.log("Comment deleted successfully");
+                            }
+                        }
+                        
+                        const modalEL = form.closest('.modal');
+                        if (modalEL) {
+                            const instance = bootstrap.Modal.getInstance(modalEL) || new bootstrap.Modal(modalEL);;
+                            instance.hide();
+                        }
+                    } else {
+                        console.log('Something went wrong...');
+                    }
+                }
+
+                xhr.send(formdata);
+
+                form.reset();
+            });
+        });
+        
+        document.querySelectorAll('.ajax-form-edit').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modal = document.getElementById('editCommentModal');
+                modal.querySelector('input[name="id"]').value = btn.dataset.commentId;
+                modal.querySelector('input[name="label"]').value = btn.dataset.commentLabel;
+                modal.querySelector('textarea[name="text"]').value = btn.dataset.commentText;
+            });
+        });
+        
+        document.getElementById('editCommentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const form = this;
+            const id = form.querySelector('input[name="id"]').value;
+        
+            console.log("Submitting edit for comment id:", id);
+        
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', `/app/comment/${id}/edit/`, true);
+            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+            xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+        
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    const data = JSON.parse(xhr.responseText);
+        
+                    if (data.success) {
+                        const card = document.querySelector(`#comment-${id}`);
+                        card.querySelector('.comment-text').textContent = data.text;
+                        card.querySelector('.comment-title').textContent = data.label;
+                        bootstrap.Modal.getInstance(document.getElementById('editCommentModal')).hide();
+                        console.log("Comment updated successfully");
+                    } else {
+                        console.log("Server returned success=false");
+                    }
+                } else {
+                    console.log("Server returned error status");
+                }
+            };
+        
+            xhr.onerror = () => {
+                console.log("XHR request failed");
+            };
+        
+            xhr.send(new FormData(form));
+        });               
+
+        document.querySelectorAll('button[data-action]').forEach(button => {
+            button.addEventListener('click', function() {
+                const songId = this.dataset.songId;
+                const action = this.dataset.action;
+        
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', `/app/song/${songId}/${action}/`, true);
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+                xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+        
+                xhr.onreadystatechange = function() {
+                    if (xhr.readyState === 4 && xhr.status >= 200 && xhr.status < 300) {
+                        const data = JSON.parse(xhr.responseText);
+                        if (!data.success) return;
+        
+                        const likeBtn = document.querySelector(`button[data-song-id="${songId}"][data-action="like"]`);
+                        const dislikeBtn = document.querySelector(`button[data-song-id="${songId}"][data-action="dislike"]`);
+                        const likeIcon = likeBtn.querySelector('.like-icon');
+                        const dislikeIcon = dislikeBtn.querySelector('.dislike-icon');
+                        const likeCount = likeBtn.querySelector('.like-count');
+        
+                        if (action === 'like') {
+                            if (data.has_like) {
+                                likeIcon.classList.replace('fa-regular', 'fa-solid');  
+                                dislikeIcon.classList.replace('fa-solid', 'fa-regular'); 
+                            } else {
+                                likeIcon.classList.replace('fa-solid', 'fa-regular'); 
+                            }
+                            if (data.likes_count !== undefined) likeCount.textContent = data.likes_count;
+                        }
+        
+                        if (action === 'dislike') {
+                            if (data.has_dislike) {
+                                dislikeIcon.classList.replace('fa-regular', 'fa-solid');
+                                likeIcon.classList.replace('fa-solid', 'fa-regular'); 
+                            } else {
+                                dislikeIcon.classList.replace('fa-solid', 'fa-regular');
+                            }
+                            
+                            likeCount.textContent = data.likes_count;
+                        }
+        
+                        if (action === 'fav') {
+                            const favBtn = document.querySelector(`button[data-song-id="${songId}"][data-action="fav"]`);
+                            if (!favBtn) return;
+                            const favIcon = favBtn.querySelector('.fav-icon');
+                            if (!favIcon) return;
+        
+                            if (data.is_fav) {
+                                favIcon.classList.replace('fa-regular', 'fa-solid');
+                            } else {
+                                favIcon.classList.replace('fa-solid', 'fa-regular');
+                            }
+                        }
+                    }
+                }
+        
+                xhr.send();
+            });
+        });
+        
+        audio.addEventListener('loadedmetadata', () => {
+            durationTimeSpan.textContent = formatTime(audio.duration);
+        });
+
+        progressBar.addEventListener('input', () => {
+            audio.currentTime = (progressBar.value / 100) * audio.duration;
+        });
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+    });
+</script>
+{% endblock %}

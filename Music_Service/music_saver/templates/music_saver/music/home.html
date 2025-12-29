@@ -1,0 +1,110 @@
+{% extends 'music_saver/base.html' %}
+
+{% block title %}Home page{% endblock title %}
+{% load my_filters %}
+
+{% block head %}
+<style>
+    .song-card {
+        cursor: pointer;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+    
+    .song-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+    }
+    
+    .card-img-container img {
+        transition: transform 0.3s;
+    }
+    
+    .song-card:hover .card-img-top {
+        transform: scale(1.03);
+    }
+    
+    .card-footer a.btn-outline-light:hover {
+        background-color: rgba(255,255,255,0.2);
+    }    
+</style>
+{% endblock head %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">Songs</h2>
+    <div class="row g-4">
+        {% for s in songs %}
+        <div class="col-sm-6 col-md-4 col-lg-3">
+            <div class="card h-100 text-white bg-dark song-card" 
+                 style="border-radius: 15px; overflow: hidden; transition: transform 0.3s, box-shadow 0.3s; font-size: 0.85rem;">
+                <div class="card-img-container" style="position: relative; padding-top: 80%; overflow: hidden;">
+                    <img src="{{ s.cover_image.url }}" alt="Song" class="card-img-top" 
+                         style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 15px;">
+                    {% if s.is_release %}
+                        <span class="badge bg-success position-absolute" style="top: 8px; left: 8px; font-size: 0.75rem;">New!</span>
+                    {% endif %}
+                </div>
+        
+                <div class="card-body text-center d-flex flex-column justify-content-between" style="padding: 0.75rem;">
+                    <h5 class="card-title mb-1" style="font-weight: 600; font-size: 0.95rem; line-height: 1.1;">{{ s.title }}</h5>
+                    <p class="card-text text-white-50 mb-2" style="font-size: 0.75rem;">{{ s.author }}</p>
+                </div>
+        
+                <div class="card-footer d-flex justify-content-between align-items-center"
+                     style="z-index: 2; background: rgba(255,255,255,0.01); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); border-radius: 0 0 15px 15px; padding: 0.35rem 0.5rem;">
+                    <a href="{% url 'view_song' s.title %}" 
+                       class="btn btn-outline-light btn-sm" 
+                       style="border-radius: 1rem; padding: 0.2rem 0.5rem; font-size: 0.75rem;">
+                        View
+                    </a>
+                    <span class="text-white-50" style="font-style: italic; font-size: 0.75rem;">
+                        <i class="fa-solid fa-headphones"></i> {{ s.views | viewsF }}
+                    </span>
+                </div>
+            </div>
+        </div>        
+        {% endfor %}
+    </div>
+</div>
+
+{% if songs.count > 8 %}
+<footer class="mt-4">
+    <nav>
+        <ul class="pagination justify-content-center">
+
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1">&laquo;</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}">‹</a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if num == page_obj.number %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}">›</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">&raquo;</a>
+                </li>
+            {% endif %}
+
+        </ul>
+    </nav>
+</footer>
+{% endif %}
+
+{% endblock content %}

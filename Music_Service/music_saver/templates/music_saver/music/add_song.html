@@ -1,0 +1,22 @@
+{% extends 'music_saver/base.html' %}
+
+{% block title %}Add Song{% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block head %}
+<style>
+    input.bg-dark::placeholder,
+    textarea.bg-dark::placeholder {
+        color: #aaa;
+        opacity: 1;
+    }
+</style>    
+{% endblock head %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form | crispy }}
+    <button type="submit" class="btn btn-outline-success">Add</button>
+</form>
+{% endblock content %}

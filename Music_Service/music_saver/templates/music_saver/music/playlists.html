@@ -1,0 +1,353 @@
+{% extends 'music_saver/base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Playlist{% endblock %}
+
+{% block content %}
+<div class="container p-1 rounded-2" style="background-color: #212529;">
+  <!-- Public Playlists -->
+  <h4 class="text-light ms-2 mt-3">Public Playlists</h4>
+  <div class="row row-cols-1 row-cols-md-3 g-3 public" id="public-playlists">
+    {% for p in playlists %}
+      {% if p.is_public %}
+      <div class="col d-flex justify-content-center playlist-card">
+        <div class="card h-100 shadow playlist-{{ p.id }}" style="background-color: #2c3036; width: 90%;">
+          <div class="card-body">
+            <h5 class="card-title align-items-center">
+              <a href="{% url 'view_playlist' p.user.username p.title %}" class="text-decoration-none text-light">
+                {{ p.title }}
+              </a>
+            </h5>
+            <p class="card-text">
+              <small class="text opacity-30">Created: {{ p.created_at|date:"d M Y" }}</small>
+            </p>
+          </div>
+          <div class="card-footer d-flex justify-content-between align-items-center">
+            <span class="badge bg-success">Public</span>
+            <div class="btn-group gap-2" role="group">
+              <button class="btn btn-outline-light btn-sm edit-playlist-btn"
+                      data-id="{{ p.id }}"
+                      data-title="{{ p.title }}"
+                      data-public="{{ p.is_public }}"
+                      data-username="{{ p.user.username }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#edit_playlist"
+                      style="border-radius: 1rem;">
+                <i class="fas fa-pen"></i>
+              </button>
+              <button class="btn btn-outline-danger btn-sm delete-playlist-btn"
+                      data-id="{{ p.id }}"
+                      style="border-radius: 1rem;">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="d-flex justify-content-start mt-3 ms-3 ps-3">
+    <button class="btn btn-outline-light btn-sm show-more-btn" style="display: none; border-radius: 1rem;"
+            data-target-id="public-playlists">Show more</button>
+  </div>
+
+  <!-- Private Playlists -->
+  <h4 class="text-light ms-2 mt-4">Private Playlists</h4>
+  <div class="row row-cols-1 row-cols-md-3 g-3 private" id="private-playlists">
+    {% for p in playlists %}
+      {% if not p.is_public %}
+      <div class="col d-flex justify-content-center playlist-card">
+        <div class="card h-100 shadow playlist-{{ p.id }}" style="background-color: #2c3036; width: 90%;">
+          <div class="card-body">
+            <h5 class="card-title align-items-center">
+              <a href="{% url 'view_playlist' p.user.username p.title %}" class="text-decoration-none text-light">
+                {{ p.title }}
+              </a>
+            </h5>
+            <p class="card-text">
+              <small class="text opacity-30">Created: {{ p.created_at|date:"d M Y" }}</small>
+            </p>
+          </div>
+          <div class="card-footer d-flex justify-content-between align-items-center">
+            <span class="badge bg-primary">Private</span>
+            <div class="btn-group gap-2" role="group">
+              <button class="btn btn-outline-light btn-sm edit-playlist-btn"
+                      data-id="{{ p.id }}"
+                      data-title="{{ p.title }}"
+                      data-public="{{ p.is_public }}"
+                      data-username="{{ p.user.username }}"
+                      data-bs-toggle="modal"
+                      data-bs-target="#edit_playlist"
+                      style="border-radius: 1rem;">
+                <i class="fas fa-pen"></i>
+              </button>
+              <button class="btn btn-outline-danger btn-sm delete-playlist-btn"
+                      data-id="{{ p.id }}"
+                      style="border-radius: 1rem;">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <div class="d-flex justify-content-start mt-3 ms-3 ps-3">
+    <button class="btn btn-outline-light btn-sm show-more-btn" style="display: none; border-radius: 1rem;"
+            data-target-id="private-playlists">Show more</button>
+  </div>
+
+  <!-- Create Playlist Button -->
+  <div class="mt-2 pb-2 d-flex justify-content-end">
+    <div class="pe-3 pt-2">
+      <button type="button" class="btn btn-outline-light" style="border-radius: 1rem; transition: 0.3s;"
+              data-bs-toggle="modal" data-bs-target="#add_playlist">
+        Create playlist
+      </button>
+    </div>
+  </div>
+
+  <!-- Add Playlist Modal -->
+  <div class="modal fade" id="add_playlist" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-header">
+          <h5 class="modal-title">Add playlist</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form method="post" class="ajax-form" name="adding_playlist">
+            {% csrf_token %}
+            {{ add_playlist_form | crispy }}
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary"
+                      style="background-color: rgba(255,255,255,0.2); border-radius: 1rem;"
+                      data-bs-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-outline-light"
+                      style="background-color: rgba(255,255,255,0.2); border-radius: 1rem;">Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Playlist Modal -->
+  <div class="modal fade" id="edit_playlist" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content bg-dark text-white">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit playlist</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="edit_playlist_form">
+            {% csrf_token %}
+            <div class="mb-3">
+              <label for="playlist_title" class="form-label">Label</label>
+              <input type="text" id="playlist_title" name="title" class="form-control bg-dark text-white" required>
+            </div>
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input bg-dark text-white" type="checkbox" id="playlist_public" name="is_public">
+              <label class="form-check-label bg-dark text-white" for="playlist_public">Public</label>
+            </div>
+            <input type="hidden" name="id" id="playlist_id">
+            <button type="submit" class="btn btn-outline-light">Save changes</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block script %}
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  const addForm = document.querySelector('.ajax-form');
+  addForm?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(addForm);
+
+    const select = addForm.querySelector('select[name="is_public"]');
+    if (select) {
+        formData.set('is_public', select.value === 'True'); 
+    }
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/app/ajax_add_playlist/', true);
+    xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const data = JSON.parse(xhr.responseText);
+        const isPublic = data.is_public;
+        const container = isPublic ? document.querySelector("#public-playlists") : document.querySelector("#private-playlists");
+        if (container) {
+          const div = document.createElement('div');
+          div.classList.add('col', 'd-flex', 'justify-content-center');
+          div.innerHTML = `
+            <div class="card h-100 shadow" style="background-color: #2c3036; width: 90%;">
+              <div class="card-body">
+                <h5 class="card-title align-items-center">
+                  <a href="/playlist/${data.usename}/${data.title}/" class="text-decoration-none text-light">${data.title}</a>
+                </h5>
+                <p class="card-text"><small class="text opacity-30">Created: ${data.created_at}</small></p>
+              </div>
+              <div class="card-footer">
+                <span class="badge ${isPublic ? 'bg-success' : 'bg-primary'}">${isPublic ? 'Public' : 'Private'}</span>
+                <div class="btn-group gap-2" role="group">
+                  <button class="btn btn-outline-light btn-sm edit-playlist-btn"
+                          data-id="${data.id}"
+                          data-title="${data.title}"
+                          data-public="${data.is_public}"
+                          data-username="${data.usename}"
+                          data-bs-toggle="modal"
+                          data-bs-target="#edit_playlist"
+                          style="border-radius: 1rem;">
+                    <i class="fas fa-pen"></i>
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm delete-playlist-btn"
+                          data-id="${data.id}"
+                          style="border-radius: 1rem;">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          `;
+          container.appendChild(div);
+        }
+        const modalEl = addForm.closest('.modal');
+        if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+      }
+    };
+    xhr.send(formData);
+    addForm.reset();
+  });
+
+  document.querySelectorAll('.edit-playlist-btn').forEach(btn => {
+    btn.addEventListener("click", () => {
+      const modal = document.getElementById('edit_playlist');
+      const titleInput = modal.querySelector('input[name="title"]');
+      const checkbox = modal.querySelector('input[name="is_public"]');
+      const label = modal.querySelector('label[for="playlist_public"]');
+      const idInput = modal.querySelector('input[name="id"]');
+
+      titleInput.value = btn.dataset.title;
+      checkbox.checked = btn.dataset.public === 'True';
+      idInput.value = btn.dataset.id;
+      label.textContent = checkbox.checked ? 'Public' : 'Private';
+
+      checkbox.onchange = () => {
+        label.textContent = checkbox.checked ? 'Public' : 'Private';
+      };
+    });
+  });
+
+  document.getElementById('edit_playlist_form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = this;
+    const id = form.querySelector('input[name="id"]').value;
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/app/ajax_edit_playlist/${id}/`, true);
+    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+    xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const data = JSON.parse(xhr.responseText);
+        if (data.success) {
+          const card = document.querySelector(`.playlist-${id}`);
+          card.querySelector('.card-title a').textContent = data.title;
+          const badge = card.querySelector('.card-footer span');
+          badge.textContent = data.is_public ? "Public" : "Private";
+          badge.className = `badge ${data.is_public ? 'bg-success' : 'bg-primary'}`;
+          const newContainer = data.is_public ? document.querySelector("#public-playlists") : document.querySelector("#private-playlists");
+          const colCard = card.closest('.col');
+          if (newContainer && colCard.parentNode !== newContainer) newContainer.appendChild(colCard);
+
+          const modalEl = form.closest('.modal');
+          if (modalEl) bootstrap.Modal.getInstance(modalEl)?.hide();
+        }
+      }
+    };
+    xhr.send(new FormData(form));
+  });
+
+  document.querySelectorAll(".delete-playlist-btn").forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!confirm('Delete this playlist?')) return;
+      const playlistId = btn.dataset.id;
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `/app/ajax_delete_playlist/${playlistId}/`, true);
+      xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.setRequestHeader('X-CSRFToken', getCookie('csrftoken'));
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) btn.closest('.col')?.remove();
+        else alert('Error while removing playlist');
+      };
+      xhr.send();
+    });
+  });
+
+  function ShowHide(container, btn) {
+    if (!container || !btn) return;
+
+    const cards = container.querySelectorAll('.col.d-flex.justify-content-center');
+
+    if (cards.length <= 3) {
+        btn.style.display = "none";
+        return;
+    }
+
+    cards.forEach((c, i) => {
+        if (i >= 3) c.classList.add('d-none');
+        else c.classList.remove('d-none');
+    });
+
+    btn.style.display = "inline-block";
+    btn.textContent = "Show more";
+
+    btn.onclick = () => {
+        const hidden = [...cards].filter(c => c.classList.contains('d-none'));
+        if (hidden.length) {
+            cards.forEach(c => c.classList.remove('d-none'));
+            btn.textContent = "Show less";
+        } else {
+            cards.forEach((c, i) => {
+                if (i >= 3) c.classList.add('d-none');
+                else c.classList.remove('d-none');
+            });
+            btn.textContent = "Show more";
+        }
+    };
+  } 
+
+  document.querySelectorAll('.show-more-btn').forEach(btn => {
+    const targetId = btn.dataset.targetId;
+    const container = document.getElementById(targetId);
+    ShowHide(container, btn);
+  });
+
+});
+</script>
+{% endblock script %}

@@ -1,0 +1,30 @@
+{% extends 'music_saver/base.html' %}
+
+{% block title %}Edit Song{% endblock title %}
+{% load crispy_forms_tags %}
+
+{% block head %}
+<style>
+    input.bg-dark,
+    textarea.bg-dark,
+    .text-break, {
+        color: #aaa !important;  
+    }
+
+    .form-control.d-flex.h-auto {
+		background-color: #212529 !important;
+		color: #fff !important;             
+	}
+	.form-control.d-flex.h-auto a {
+		color: #0d6efd; 
+	}
+</style>    
+{% endblock head %}
+
+{% block content %}
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <button type="submit" class="btn btn-outline-success">Save changes</button>
+</form>
+{% endblock content %}
